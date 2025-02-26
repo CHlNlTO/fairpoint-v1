@@ -58,7 +58,6 @@ class LatestTransactions extends BaseWidget
                         if ($record->transaction_type === 'sale') {
                             return $record->customer?->name ?? 'Unknown Customer';
                         } else {
-                            // For expenses, get vendor name
                             $expense = ExpenseTransaction::find($record->id);
                             return $expense?->vendor?->name ?? $expense?->vendor_name ?? 'Unknown Vendor';
                         }
