@@ -1,7 +1,7 @@
 <?php
 // app/Filament/Widgets/SalesOverview.php
 
-namespace App\Filament\Widgets;
+namespace App\Filament\Admin\Widgets;
 
 use App\Models\SalesTransaction;
 use App\Models\ChartOfAccount;
