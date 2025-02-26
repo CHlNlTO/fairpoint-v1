@@ -33,26 +33,31 @@ jobs:
       - name: Build NPM Assets
         run: npm run build
 
-      # Deploy using sshpass (alternative approach)
-      - name: Install sshpass
-        run: sudo apt-get install sshpass
-
-      # Generate known_hosts file to avoid SSH host authenticity prompts
+      # Setup known_hosts file
       - name: Setup known_hosts
         run: |
           mkdir -p ~/.ssh
           ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
-      # Use rsync directly with private key
+      # Test the SSH connection
+      - name: Test SSH connection
+        run: |
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > deploy_key
+          chmod 600 deploy_key
+          ssh -i deploy_key -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "echo 'SSH connection successful'"
+          rm deploy_key
+
+      # Deploy with rsync
       - name: Deploy with rsync
         run: |
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > deploy_key
           chmod 600 deploy_key
-          rsync -avz --delete -e "ssh -i deploy_key" ./public/ ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/var/www/html/fairpoint-v1/public/
+          rsync -avz --delete -e "ssh -i deploy_key" ./ ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/var/www/html/fairpoint-v1/ --exclude=".git" --exclude="node_modules" --exclude="vendor" --exclude=".env"
           rm deploy_key
 
-      - name: Run Remote/Artisan Commands
+      # Clear all caches first (including Filament)
+      - name: Clear all caches
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -60,5 +65,31 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /var/www/html/fairpoint-v1
+            php artisan cache:clear
+            php artisan config:clear
+            php artisan view:clear
+            php artisan route:clear
+            php artisan filament:optimize-clear
+
+      # Run Laravel commands separately to capture any errors
+      - name: Run migrations
+        uses: appleboy/ssh-action@master
+        continue-on-error: true
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /var/www/html/fairpoint-v1
             php artisan migrate --force
+
+      - name: Run optimization
+        uses: appleboy/ssh-action@master
+        continue-on-error: true
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /var/www/html/fairpoint-v1
             php artisan optimize
