@@ -1,7 +1,7 @@
 <?php
-// app/Filament/Widgets/LatestTransactionsWidget.php
+// app/Filament/Widgets/LatestTransactions.php
 
-namespace App\Filament\Widgets;
+namespace App\Filament\Admin\Widgets;
 
 use App\Models\SalesTransaction;
 use App\Models\ExpenseTransaction;

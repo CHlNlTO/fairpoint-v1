@@ -2,7 +2,7 @@
 
 namespace App\Providers\Filament;
 
-use App\Filament\Widgets\LatestTransactions;
+use App\Filament\Admin\Widgets\LatestTransactions;
 use App\Filament\Widgets\SalesOverview;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
