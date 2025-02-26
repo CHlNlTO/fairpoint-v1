@@ -40,20 +40,13 @@ jobs:
           ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
-      # Test the SSH connection
-      - name: Test SSH connection
-        run: |
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > deploy_key
-          chmod 600 deploy_key
-          ssh -i deploy_key -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "echo 'SSH connection successful'"
-          rm deploy_key
-
-      # Deploy with rsync
+      # Deploy with rsync - MODIFIED OPTIONS
       - name: Deploy with rsync
         run: |
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > deploy_key
           chmod 600 deploy_key
-          rsync -avz --delete -e "ssh -i deploy_key" ./ ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/var/www/html/fairpoint-v1/ --exclude=".git" --exclude="node_modules" --exclude="vendor" --exclude=".env"
+          # Using -rlgoDz instead of -avz to skip timestamp preservation (-t)
+          rsync -rlgoDz --delete -e "ssh -i deploy_key" ./ ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/var/www/html/fairpoint-v1/ --exclude=".git" --exclude="node_modules" --exclude="vendor" --exclude=".env"
           rm deploy_key
 
       # Clear all caches first (including Filament)
