@@ -7,7 +7,7 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
@@ -17,33 +17,43 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
+          extensions: mbstring, bcmath, pdo, pdo_mysql, xml, ctype, json, tokenizer
 
-      - name: Install Composer
+      - name: Install Composer Dependencies
         run: composer install --optimize-autoloader --no-dev --no-progress --no-interaction --prefer-dist
 
       - name: Install Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: "22.14.0"
+          node-version: "18"
 
       - name: Install NPM Dependencies
-        run: npm install
+        run: npm ci
 
       - name: Build NPM Assets
         run: npm run build
 
-      - name: Synchronize Files To Server
-        uses: easingthemes/ssh-deploy@v2.1.5
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          ARGS: "-rlgoDzvO"
-          SOURCE: "public/"
-          REMOTE_HOST: ${{ secrets.SERVER_HOST }}
-          REMOTE_USER: ${{ secrets.SERVER_USER }}
-          TARGET: "/var/www/html/fairpoint-v1"
+      # Deploy using sshpass (alternative approach)
+      - name: Install sshpass
+        run: sudo apt-get install sshpass
+
+      # Generate known_hosts file to avoid SSH host authenticity prompts
+      - name: Setup known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      # Use rsync directly with private key
+      - name: Deploy with rsync
+        run: |
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > deploy_key
+          chmod 600 deploy_key
+          rsync -avz --delete -e "ssh -i deploy_key" ./public/ ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/var/www/html/fairpoint-v1/public/
+          rm deploy_key
 
       - name: Run Remote/Artisan Commands
-        uses: appleboy/ssh-action@v0.1.6
+        uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
