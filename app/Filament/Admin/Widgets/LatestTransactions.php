@@ -1,5 +1,5 @@
 <?php
-// app/Filament/Widgets/LatestTransactions.php
+// app/Filament/Widgets/LatestTransactionsWidget.php
 
 namespace App\Filament\Admin\Widgets;
 
