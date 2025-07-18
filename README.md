@@ -1,66 +1,293 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Blog Posts API Documentation
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A public REST API for accessing blog posts and their associated tags. This API provides read-only access to all blog posts without requiring authentication.
 
-## About Laravel
+## Base URL
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+```
+https://yourdomain.com/api/v1
+```
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Endpoints
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Get All Blog Posts
 
-## Learning Laravel
+Retrieve all blog posts with their associated tags.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+**Endpoint:** `GET /api/v1/posts`
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+**Response Format:**
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```json
+{
+    "success": true,
+    "message": "Blog posts retrieved successfully",
+    "data": [
+        {
+            "id": 1,
+            "title": "How to Build Amazing Laravel Applications",
+            "description": "# Introduction\n\nThis is a comprehensive guide...",
+            "author": "John Doe",
+            "published_date": "2025-07-15",
+            "active": true,
+            "order": 1,
+            "created_at": "2025-07-15T10:30:00.000000Z",
+            "updated_at": "2025-07-16T14:20:00.000000Z",
+            "tags": [
+                {
+                    "id": 1,
+                    "name": "Laravel",
+                    "created_at": "2025-07-15T10:25:00.000000Z",
+                    "updated_at": "2025-07-15T10:25:00.000000Z"
+                }
+            ]
+        }
+    ],
+    "meta": {
+        "total_count": 3,
+        "active_count": 2,
+        "inactive_count": 1
+    }
+}
+```
 
-## Laravel Sponsors
+### Get Single Blog Post
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+Retrieve a specific blog post by its ID.
 
-### Premium Partners
+**Endpoint:** `GET /api/v1/posts/{id}`
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+**Parameters:**
 
-## Contributing
+-   `id` (integer, required): The ID of the blog post
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+**Success Response:**
 
-## Code of Conduct
+```json
+{
+    "success": true,
+    "message": "Blog post retrieved successfully",
+    "data": {
+        "id": 1,
+        "title": "How to Build Amazing Laravel Applications",
+        "description": "# Introduction\n\nThis is a comprehensive guide...",
+        "author": "John Doe",
+        "published_date": "2025-07-15",
+        "active": true,
+        "order": 1,
+        "created_at": "2025-07-15T10:30:00.000000Z",
+        "updated_at": "2025-07-16T14:20:00.000000Z",
+        "tags": [
+            {
+                "id": 1,
+                "name": "Laravel",
+                "created_at": "2025-07-15T10:25:00.000000Z",
+                "updated_at": "2025-07-15T10:25:00.000000Z"
+            }
+        ]
+    }
+}
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+**Error Response (404 Not Found):**
 
-## Security Vulnerabilities
+```json
+{
+    "success": false,
+    "message": "Blog post not found",
+    "data": null,
+    "error": {
+        "code": 404,
+        "type": "NOT_FOUND"
+    }
+}
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Data Fields
 
-## License
+### Blog Post Object
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+| Field            | Type    | Description                                 |
+| ---------------- | ------- | ------------------------------------------- |
+| `id`             | integer | Unique identifier for the blog post         |
+| `title`          | string  | Title of the blog post                      |
+| `description`    | string  | Content of the blog post in Markdown format |
+| `author`         | string  | Name of the blog post author                |
+| `published_date` | string  | Publication date (YYYY-MM-DD format)        |
+| `active`         | boolean | Whether the blog post is active/published   |
+| `order`          | integer | Display order of the blog post              |
+| `created_at`     | string  | ISO 8601 timestamp of creation              |
+| `updated_at`     | string  | ISO 8601 timestamp of last update           |
+| `tags`           | array   | Array of associated tag objects             |
+
+### Tag Object
+
+| Field        | Type    | Description                       |
+| ------------ | ------- | --------------------------------- |
+| `id`         | integer | Unique identifier for the tag     |
+| `name`       | string  | Name of the tag                   |
+| `created_at` | string  | ISO 8601 timestamp of creation    |
+| `updated_at` | string  | ISO 8601 timestamp of last update |
+
+### Meta Object (Collection Only)
+
+| Field            | Type    | Description                   |
+| ---------------- | ------- | ----------------------------- |
+| `total_count`    | integer | Total number of blog posts    |
+| `active_count`   | integer | Number of active blog posts   |
+| `inactive_count` | integer | Number of inactive blog posts |
+
+## Example Usage
+
+### cURL Examples
+
+**Get all blog posts:**
+
+```bash
+curl -X GET "https://yourdomain.com/api/v1/posts" \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json"
+```
+
+**Get specific blog post:**
+
+```bash
+curl -X GET "https://yourdomain.com/api/v1/posts/1" \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json"
+```
+
+### JavaScript/Fetch Examples
+
+**Get all blog posts:**
+
+```javascript
+fetch("https://yourdomain.com/api/v1/posts", {
+    method: "GET",
+    headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+    },
+})
+    .then((response) => response.json())
+    .then((data) => {
+        console.log("Blog posts:", data.data);
+        console.log("Total posts:", data.meta.total_count);
+    })
+    .catch((error) => console.error("Error:", error));
+```
+
+**Get specific blog post:**
+
+```javascript
+const postId = 1;
+fetch(`https://yourdomain.com/api/v1/posts/${postId}`, {
+    method: "GET",
+    headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+    },
+})
+    .then((response) => response.json())
+    .then((data) => {
+        if (data.success) {
+            console.log("Blog post:", data.data);
+        } else {
+            console.error("Error:", data.message);
+        }
+    })
+    .catch((error) => console.error("Error:", error));
+```
+
+### Python Examples
+
+**Using requests library:**
+
+```python
+import requests
+
+# Get all blog posts
+response = requests.get('https://yourdomain.com/api/v1/posts')
+data = response.json()
+
+if data['success']:
+    blog_posts = data['data']
+    print(f"Found {data['meta']['total_count']} blog posts")
+    for post in blog_posts:
+        print(f"- {post['title']} by {post['author']}")
+else:
+    print(f"Error: {data['message']}")
+
+# Get specific blog post
+post_id = 1
+response = requests.get(f'https://yourdomain.com/api/v1/posts/{post_id}')
+data = response.json()
+
+if data['success']:
+    post = data['data']
+    print(f"Title: {post['title']}")
+    print(f"Author: {post['author']}")
+    print(f"Tags: {', '.join([tag['name'] for tag in post['tags']])}")
+else:
+    print(f"Error: {data['message']}")
+```
+
+## HTTP Status Codes
+
+| Code  | Description                                         |
+| ----- | --------------------------------------------------- |
+| `200` | OK - Request successful                             |
+| `404` | Not Found - Blog post with specified ID not found   |
+| `500` | Internal Server Error - Server encountered an error |
+
+## Content Types
+
+-   **Request:** `application/json`
+-   **Response:** `application/json`
+
+## Authentication
+
+This API is **public** and does not require authentication. All endpoints are accessible without any API keys or tokens.
+
+## Rate Limiting
+
+Currently, there are no rate limits implemented on this API.
+
+## Markdown Content
+
+The `description` field contains Markdown-formatted content. When displaying this content in your application, you'll need to parse it using a Markdown parser appropriate for your platform:
+
+-   **JavaScript:** marked, markdown-it, or remark
+-   **Python:** markdown or mistune
+-   **PHP:** parsedown or league/commonmark
+-   **Other languages:** Check for Markdown parsing libraries
+
+## Error Handling
+
+All endpoints return consistent error response format:
+
+```json
+{
+    "success": false,
+    "message": "Error description",
+    "data": null,
+    "error": {
+        "code": 404,
+        "type": "ERROR_TYPE"
+    }
+}
+```
+
+## Support
+
+For questions or issues with this API, please contact the development team or create an issue in the project repository.
+
+## Changelog
+
+### Version 1.0.0
+
+-   Initial release
+-   Added GET /posts endpoint
+-   Added GET /posts/{id} endpoint
+-   Support for blog post tags
+-   Public access (no authentication required)
