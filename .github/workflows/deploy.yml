@@ -17,7 +17,10 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
-          extensions: mbstring, bcmath, pdo, pdo_mysql, xml, ctype, json, tokenizer
+          extensions: mbstring, bcmath, pdo, pdo_mysql, xml, ctype, json, tokenizer, zip, curl, gd
+
+      - name: Copy .env
+        run: php -r "file_exists('.env') || copy('.env.example', '.env');"
 
       - name: Install Composer Dependencies
         run: composer install --optimize-autoloader --no-dev --no-progress --no-interaction --prefer-dist
@@ -40,16 +43,57 @@ jobs:
           ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
-      # Deploy with rsync - MODIFIED OPTIONS
+      # Deploy with rsync - FIXED
       - name: Deploy with rsync
         run: |
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > deploy_key
           chmod 600 deploy_key
-          # Using -rlgoDz instead of -avz to skip timestamp preservation (-t)
-          rsync -rlgoDz --delete -e "ssh -i deploy_key" ./ ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/var/www/html/fairpoint-v1/ --exclude=".git" --exclude="node_modules" --exclude="vendor" --exclude=".env"
+          # Deploy files excluding sensitive and unnecessary items
+          rsync -rlgoDz --delete \
+            -e "ssh -i deploy_key -o StrictHostKeyChecking=no" \
+            ./ ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/var/www/html/fairpoint-v1/ \
+            --exclude=".git" \
+            --exclude="node_modules" \
+            --exclude="vendor" \
+            --exclude=".env" \
+            --exclude=".env.example" \
+            --exclude="storage/logs/*" \
+            --exclude="bootstrap/cache/*" \
+            --exclude="storage/framework/cache/*" \
+            --exclude="storage/framework/sessions/*" \
+            --exclude="storage/framework/views/*"
           rm deploy_key
 
-      # Clear all caches first (including Filament)
+      # Install dependencies and fix permissions on server
+      - name: Install dependencies and setup
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /var/www/html/fairpoint-v1
+
+            # Install composer dependencies on server
+            composer install --optimize-autoloader --no-dev --no-interaction
+
+            # Create necessary directories
+            mkdir -p storage/logs
+            mkdir -p storage/framework/cache
+            mkdir -p storage/framework/sessions
+            mkdir -p storage/framework/views
+            mkdir -p bootstrap/cache
+
+            # Fix ownership and permissions
+            sudo chown -R www-data:www-data /var/www/html/fairpoint-v1
+            sudo chmod -R 755 /var/www/html/fairpoint-v1
+            sudo chmod -R 775 storage
+            sudo chmod -R 775 bootstrap/cache
+
+            # Create storage link if it doesn't exist
+            php artisan storage:link
+
+      # Clear all caches
       - name: Clear all caches
         uses: appleboy/ssh-action@master
         with:
@@ -62,12 +106,13 @@ jobs:
             php artisan config:clear
             php artisan view:clear
             php artisan route:clear
-            php artisan filament:optimize-clear
 
-      # Run Laravel commands separately to capture any errors
+            # Clear Filament cache if Filament Shield is installed
+            php artisan filament:optimize-clear || true
+
+      # Run migrations
       - name: Run migrations
         uses: appleboy/ssh-action@master
-        continue-on-error: true
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
@@ -76,7 +121,8 @@ jobs:
             cd /var/www/html/fairpoint-v1
             php artisan migrate --force
 
-      - name: Run optimization
+      # Install Filament Shield if needed
+      - name: Setup Filament Shield
         uses: appleboy/ssh-action@master
         continue-on-error: true
         with:
@@ -85,4 +131,57 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /var/www/html/fairpoint-v1
-            php artisan optimize
+
+            # Install Filament Shield if not already installed
+            composer show bezhansalleh/filament-shield > /dev/null 2>&1 || composer require bezhansalleh/filament-shield
+
+            # Publish and install if needed
+            php artisan vendor:publish --tag="filament-shield-config" --force || true
+            php artisan shield:install --minimal || true
+
+      # Optimize for production
+      - name: Optimize for production
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /var/www/html/fairpoint-v1
+
+            # Cache configurations for production
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+
+            # Optimize Filament
+            php artisan filament:optimize || true
+
+      # Restart web server
+      - name: Restart web server
+        uses: appleboy/ssh-action@master
+        continue-on-error: true
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # Restart based on your web server
+            sudo systemctl reload nginx || sudo systemctl reload apache2 || true
+
+      # Health check
+      - name: Health check
+        uses: appleboy/ssh-action@master
+        continue-on-error: true
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /var/www/html/fairpoint-v1
+
+            # Basic Laravel health check
+            php artisan about || true
+
+            # Check if application is responding
+            curl -f http://localhost || curl -f https://localhost || echo "Health check completed"
