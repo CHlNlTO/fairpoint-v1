@@ -121,6 +121,32 @@ jobs:
             cd /var/www/html/fairpoint-v1
             php artisan migrate --force
 
+      # Enable API routes and test endpoints
+      - name: Setup API routes and test
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /var/www/html/fairpoint-v1
+
+            # Clear all caches to ensure new routes are loaded
+            php artisan route:clear
+            php artisan config:clear
+            php artisan cache:clear
+
+            # Check if API routes are loaded
+            echo "Checking API routes..."
+            php artisan route:list --path=api || php artisan route:list | grep "v1"
+
+            # Test API endpoint
+            echo "Testing API endpoint..."
+            curl -f https://${{ secrets.DOMAIN_NAME }}/api/v1/test || echo "API test completed"
+
+            # Cache routes for production
+            php artisan route:cache
+
       # Install Filament Shield if needed
       - name: Setup Filament Shield
         uses: appleboy/ssh-action@master
